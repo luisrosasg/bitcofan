@@ -3,6 +3,9 @@ import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 import { initDb, DailyScores } from './lib/db.js'
 import { registerSocket, setWss } from './lib/events.js'
@@ -22,6 +25,12 @@ const PORT   = process.env.PORT || 3001
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }))
 app.use(express.json())
+
+// ── Serve frontend in production ─────────────────────────
+const DIST = join(__dirname, '../../client/dist')
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(DIST))
+}
 
 // ── WebSocket ────────────────────────────────────────────────
 const wss = new WebSocketServer({ server, path: '/ws' })
@@ -137,7 +146,14 @@ app.use('/api/ranking',  rankingRoutes)
 app.use('/api/referrals', referralRoutes)
 app.use('/api/ref',       referralRoutes)
 app.use('/api/payments',  gameRoutes)  // DalePago webhook
-app.get('/api/health',  (_, res) => res.json({ ok: true }))
+app.get('/api/health', (_, res) => res.json({ ok: true }))
+
+// ── Catch-all: serve React app for non-API routes ────────
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(join(DIST, 'index.html'))
+  })
+}
 
 // ── Start ────────────────────────────────────────────────────
 async function main() {
