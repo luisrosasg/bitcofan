@@ -426,40 +426,12 @@ export default function GamePage() {
         {/* Game Card */}
         <div className={`card game-card ${winFlash ? 'game-win-flash' : ''}`}>
 
-          {/* Ghost mode banner — inside card */}
-          {/* C: Prize carousel above chart when in active bet */}
-          {(activeBet || ghostBet) && tournaments.length > 0 && (
-            <div className="prize-carousel">
-              {tournaments.map(t => (
-                <div key={t.id} className="pci">
-                  <span className="pci-name">{t.name}</span>
-                  <span className="pci-prize">{t.prize}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {ghostMode && (
             <div className="ghost-banner">
               <span>👻 MODO FANTASMA — Sin stickers, sin ranking</span>
               <button className="ghost-exit-btn" onClick={() => { setGhostMode(false); setGhostStreak(0); setGhostBet(null); setGhostResult(null) }}>
                 SALIR
               </button>
-            </div>
-          )}
-
-          {/* C: Prize carousel — always visible above chart */}
-          {(activeBet || ghostBet) && tournaments.length > 0 && (
-            <div className="prize-carousel">
-              {tournaments.map(t => {
-                const score = null
-                return (
-                  <div key={t.id} className="prize-carousel-item">
-                    <span className="pci-name">{t.name}</span>
-                    <span className="pci-prize">{t.prize}</span>
-                  </div>
-                )
-              })}
             </div>
           )}
 
