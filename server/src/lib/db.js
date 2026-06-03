@@ -36,6 +36,18 @@ async function initDb() {
   try { db.run("ALTER TABLE users ADD COLUMN referredBy TEXT") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN emailVerified INTEGER DEFAULT 0") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN emailVerifyToken TEXT") } catch {}
+  try { db.run("ALTER TABLE users ADD COLUMN phone TEXT") } catch {}
+
+  db.run(`CREATE TABLE IF NOT EXISTS pending_orders (
+    id          TEXT PRIMARY KEY,
+    userId      TEXT NOT NULL,
+    pack        INTEGER NOT NULL,
+    amount      INTEGER NOT NULL,
+    dalepago_id TEXT,
+    status      TEXT DEFAULT 'pending',
+    createdAt   TEXT DEFAULT (datetime('now'))
+  )`)
+
   return db
 }
 
