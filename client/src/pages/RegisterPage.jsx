@@ -70,7 +70,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Teléfono</label>
             <input
               className="input"
               type="tel"
@@ -79,7 +79,11 @@ export default function RegisterPage() {
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               required
             />
-            <label className="input-label">Teléfono (para contactarte si ganas)</label>
+            <span className="input-hint">Te contactaremos aquí si ganas un premio</span>
+          </div>
+
+          <div className="form-group">
+            <label>Contraseña</label>
             <input
               className="input"
               type="password" autoComplete="current-password"

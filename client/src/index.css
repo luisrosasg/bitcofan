@@ -3535,3 +3535,24 @@ details[open] .how-arrow {
   .prize-stack { flex-direction: row; }
   .prize-card  { flex: 1; }
 }
+
+/* ── Auth inputs — clearer font ──────────────────────────── */
+.auth-card .input,
+.auth-form .input {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  font-size: 15px !important;
+  letter-spacing: 0 !important;
+  color: #fff !important;
+}
+.auth-card .input::placeholder,
+.auth-form .input::placeholder {
+  color: rgba(167,139,250,.5) !important;
+  font-size: 14px;
+}
+.input-hint {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 4px;
+  display: block;
+}
