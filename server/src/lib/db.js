@@ -58,6 +58,7 @@ function createTables() {
     CREATE TABLE IF NOT EXISTS users (
       id         TEXT PRIMARY KEY,
       email      TEXT UNIQUE NOT NULL,
+      phone      TEXT,
       username   TEXT UNIQUE NOT NULL,
       password   TEXT NOT NULL,
       points     INTEGER DEFAULT 0,

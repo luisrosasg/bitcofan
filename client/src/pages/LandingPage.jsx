@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../lib/api'
 import { Link } from 'react-router-dom'
 
@@ -225,6 +225,88 @@ function PackArt({ kind }) {
 }
 
 /* ── Main Landing Page ────────────────────────────────────── */
+function LandingTournamentCard({ tournament: t }) {
+  const [lb, setLb] = React.useState([])
+  React.useEffect(() => {
+    fetch(`/api/tournaments/${t.id}/leaderboard`)
+      .then(r => r.json())
+      .then(d => setLb(d.leaderboard?.slice(0, 5) || []))
+      .catch(() => {})
+  }, [t.id])
+
+  const diff = Math.max(0, new Date(t.endAt) - Date.now())
+  const days = Math.floor(diff / 86400000)
+  const hrs  = Math.floor((diff % 86400000) / 3600000)
+  const min  = Math.floor((diff % 3600000) / 60000)
+  const timeStr = days > 0 ? `${days}d ${hrs}h` : `${hrs}h ${min}m`
+
+  return (
+    <div className="lp-ranking-wrap" style={{ marginBottom: 32 }}>
+      <div className="lp-ranking-side">
+        <h3 style={{ fontFamily: 'var(--font-pixel)', fontSize: 11, color: '#fff', marginBottom: 12 }}>🎯 {t.name}</h3>
+        <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.6, marginBottom: 16 }}>
+          {t.description || (t.type === 'streak' ? 'La mejor racha consecutiva gana el premio.' : 'El jugador con más puntos gana el premio.')}
+        </p>
+        <div className="lp-prize-card">
+          <span style={{ fontSize: 36 }}>🏆</span>
+          <div>
+            <div className="lp-prize-label">{t.type === 'streak' ? 'MEJOR RACHA' : 'MÁS PUNTOS'} · ⏱ {timeStr}</div>
+            <div className="lp-prize-value">{t.prize}</div>
+          </div>
+        </div>
+        {lb[0] && (
+          <div className="lp-best-streak-card" style={{ marginTop: 12 }}>
+            <div className="lp-bsc-row">
+              <span>👑</span>
+              <div>
+                <div className="lp-bsc-label">LÍDER ACTUAL</div>
+                <div className="lp-bsc-val">{lb[0].avatar ?? '₿'} {lb[0].username} · 🔥 {lb[0].bestStreak}</div>
+              </div>
+            </div>
+            <div className="lp-bsc-cta">⏳ Aún puedes superarla</div>
+          </div>
+        )}
+      </div>
+      <div className="lp-ranking-list">
+        {lb.length === 0 ? (
+          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-dim)', fontFamily: 'var(--font-pixel)', fontSize: 10 }}>
+            Nadie aún —<br/>¡sé el primero!
+          </div>
+        ) : lb.map((r, i) => (
+          <div key={r.userId} className={`lp-rank-row ${i < 3 ? `lp-top${i+1}` : ''}`}>
+            <span className="lp-rank-pos">{i + 1}</span>
+            <span className="lp-rank-av">{r.avatar ?? '₿'}</span>
+            <span className="lp-rank-name">{r.username}</span>
+            <span className="lp-rank-streak">🔥 {t.type === 'streak' ? r.bestStreak : r.totalPoints}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TournamentBestStreak({ tournamentId }) {
+  const [top, setTop] = React.useState(null)
+
+  React.useEffect(() => {
+    fetch(`/api/tournaments/${tournamentId}/leaderboard`)
+      .then(r => r.json())
+      .then(d => setTop(d.leaderboard?.[0] ?? null))
+      .catch(() => {})
+  }, [tournamentId])
+
+  return (
+    <div className="lp-hero-best-streak">
+      <span>👑 Mejor racha actual:</span>
+      {top
+        ? <span className="lp-hbs-val">🔥 {top.bestStreak} aciertos — {top.avatar ?? '₿'} {top.username}</span>
+        : <span className="lp-hbs-val" style={{ color: 'var(--text-dim)' }}>Nadie aún — ¡sé el primero!</span>
+      }
+      <span className="lp-hbs-cta">⏳ Aún puedes superarla</span>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const { price, prevPrice, pct24h, history, connected } = useLiveBtc()
   const [faqOpen, setFaqOpen] = useState(0)
@@ -426,15 +508,7 @@ export default function LandingPage() {
             </div>
           )}
 
-          {/* Best streak — below prizes, always visible */}
-          <div className="lp-hero-best-streak">
-            <span>👑 Mejor racha actual:</span>
-            {topRanking.length > 0
-              ? <span className="lp-hbs-val">🔥 {topRanking[0].bestStreak} aciertos — {topRanking[0].avatar ?? '₿'} {topRanking[0].username}</span>
-              : <span className="lp-hbs-val" style={{ color: 'var(--text-dim)' }}>Nadie aún — ¡sé el primero!</span>
-            }
-            <span className="lp-hbs-cta">⏳ Aún puedes superarla</span>
-          </div>
+
 
           {/* CTA */}
           <div className="lp-hero-ctas">
@@ -524,64 +598,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Ranking ── */}
+      {/* ── Ranking / Torneos ── */}
       <section className="lp-section" id="ranking">
         <div className="lp-section-inner">
           <div className="lp-eyebrow">▸ ACTUALIZADO EN TIEMPO REAL</div>
-          <h2 className="lp-section-title">MEJOR RACHA DEL DÍA</h2>
-          <p className="lp-section-sub">El jugador con la racha más larga al cierre de las 24h se lleva el premio.</p>
-          <div className="lp-ranking-wrap">
-            <div className="lp-ranking-side">
-              <h3>🎯 CÓMO SE GANA EL PREMIO</h3>
-              <p>No importa cuántas rondas juegues por día. Lo que importa es tu <strong style={{ color: '#fcd34d' }}>mejor racha de aciertos consecutivos</strong>. Una racha rota arranca otra: siempre tienes chance.</p>
-              <div className="lp-prize-card">
-                <span style={{ fontSize: 36 }}>🏆</span>
-                <div>
-                  <div className="lp-prize-label">PREMIO DIARIO · MEJOR RACHA</div>
-                  <div className="lp-prize-value">${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</div>
-                </div>
-              </div>
-              <div className="lp-prize-card lp-prize-gold">
-                <span style={{ fontSize: 36 }}>💎</span>
-                <div>
-                  <div className="lp-prize-label" style={{ color: '#fcd34d' }}>PREMIO MENSUAL · MEJOR RACHA DEL MES</div>
-                  <div className="lp-prize-value">${typeof prizes.monthly === 'number' ? prizes.monthly.toLocaleString('es-CL') : prizes.monthly}</div>
-                </div>
-              </div>
+          <h2 className="lp-section-title">🏆 TORNEOS ACTIVOS</h2>
+          <p className="lp-section-sub">Compite por el mejor puesto. La mejor racha del torneo gana el premio.</p>
 
-              {/* Best streak today */}
-              <div className="lp-best-streak-card">
-                <div className="lp-bsc-row">
-                  <span>👑</span>
-                  <div>
-                    <div className="lp-bsc-label">MEJOR RACHA HOY</div>
-                    <div className="lp-bsc-val">
-                      {topRanking[0]
-                        ? <>{topRanking[0].avatar ?? '₿'} {topRanking[0].username} · 🔥 {topRanking[0].bestStreak} aciertos</>
-                        : 'Nadie aún — ¡sé el primero!'}
-                    </div>
-                  </div>
-                </div>
-                <div className="lp-bsc-cta">⏳ Aún puedes superarla</div>
-              </div>
+          {activeTournaments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-dim)', fontFamily: 'var(--font-pixel)', fontSize: 11 }}>
+              Próximamente nuevos torneos y premios.
             </div>
-            <div className="lp-ranking-list">
-              {[
-                { pos: 1, av: '👑', name: 'CryptoKing',    streak: 14 },
-                { pos: 2, av: '🦍', name: 'MoonWalker',    streak: 11 },
-                { pos: 3, av: '💎', name: 'DiamondHands',  streak: 9  },
-                { pos: 4, av: '🐋', name: 'PixelWhale',    streak: 7  },
-                { pos: 5, av: '⚡', name: 'NeonTrader',    streak: 5  },
-              ].map(r => (
-                <div key={r.pos} className={`lp-rank-row ${r.pos <= 3 ? `lp-top${r.pos}` : ''}`}>
-                  <span className="lp-rank-pos">{r.pos}</span>
-                  <span className="lp-rank-av">{r.av}</span>
-                  <span className="lp-rank-name">{r.name}</span>
-                  <span className="lp-rank-streak">🔥 {r.streak}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          ) : activeTournaments.map(t => (
+            <LandingTournamentCard key={t.id} tournament={t} />
+          ))}
         </div>
       </section>
 

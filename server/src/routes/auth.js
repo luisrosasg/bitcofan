@@ -88,7 +88,7 @@ router.get('/verify-email', (req, res) => {
   if (!token) return res.status(400).json({ error: 'Token requerido' })
   try {
     const found = dbGet('SELECT * FROM users WHERE emailVerifyToken = ?', [token])
-    if (!found) return res.status(400).json({ error: 'Token inválido o expirado' })
+    if (!found) return res.status(400).json({ error: 'Token inválido o expirado', hint: 'Si ya verificaste antes, inicia sesión normalmente.' })
     if (found.emailVerified) return res.json({ ok: true, alreadyVerified: true })
     Users.update(found.id, { emailVerified: 1, emailVerifyToken: null })
     return res.json({ ok: true })

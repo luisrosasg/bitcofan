@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext'
 export default function RegisterPage() {
   const { login } = useAuth()
   const navigate  = useNavigate()
-  const [form, setForm]     = useState({ email: '', username: '', password: '' })
-  useEffect(() => { setForm({ email: '', username: '', password: '' }) }, [])
+  const [form, setForm]     = useState({ email: '', username: '', password: '', phone: '' })
+  useEffect(() => { setForm({ email: '', username: '', password: '', phone: '' }) }, [])
   const [error, setError]   = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -71,6 +71,15 @@ export default function RegisterPage() {
 
           <div className="form-group">
             <label>Password</label>
+            <input
+              className="input"
+              type="tel"
+              placeholder="+56912345678"
+              value={form.phone}
+              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              required
+            />
+            <label className="input-label">Teléfono (para contactarte si ganas)</label>
             <input
               className="input"
               type="password" autoComplete="current-password"

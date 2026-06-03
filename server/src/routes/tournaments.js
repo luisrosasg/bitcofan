@@ -137,6 +137,11 @@ async function notifyWinner(user, tournament, score) {
         <div style="font-size:12px;color:#6d4aa8;margin-top:4px;">${statLabel}</div>
       </div>
       <p style="color:#a78bfa;font-size:14px;">Nos pondremos en contacto contigo pronto para coordinar la entrega del premio.</p>
+      ${user.phone ? `<div style="background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:10px;padding:12px 16px;margin:16px 0;text-align:center;">
+        <div style="font-size:11px;color:#a78bfa;margin-bottom:4px;">TE CONTACTAREMOS AL</div>
+        <div style="font-size:18px;font-weight:700;color:#fff;">${user.phone}</div>
+        <div style="font-size:12px;color:#6d4aa8;margin-top:4px;">Si tu número cambió, responde este email.</div>
+      </div>` : ''}
       <a href="${APP_URL}" style="display:block;text-align:center;background:linear-gradient(135deg,#a855f7,#8b5cf6);color:#fff;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin-top:20px;">IR A BITCOFAN</a>
     </div>
   </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useGameSocket } from '../hooks/useGameSocket'
 import { api } from '../lib/api'
@@ -8,6 +8,81 @@ import Toast from '../components/Toast'
 import ResultModal from '../components/ResultModal'
 import ProfilePage from './ProfilePage'
 import { playLock, playTick, playTickUrgent, playWin, playLose, setMuted, getMuted } from '../lib/sounds'
+
+function TournamentLeaderboard({ tournament: t, userId }) {
+  const [lb, setLb] = React.useState([])
+  const [myScore, setMyScore] = React.useState(null)
+
+  React.useEffect(() => {
+    api.tournaments.leaderboard(t.id).then(d => setLb(d.leaderboard || [])).catch(() => {})
+    if (userId) api.tournaments.me(t.id).then(d => { setMyScore(d.score); }).catch(() => {})
+  }, [t.id, userId])
+
+  const diff = Math.max(0, new Date(t.endAt) - Date.now())
+  const days = Math.floor(diff / 86400000)
+  const hrs  = Math.floor((diff % 86400000) / 3600000)
+  const min  = Math.floor((diff % 3600000) / 60000)
+  const timeStr = days > 0 ? `${days}d ${hrs}h` : `${hrs}h ${min}m`
+  const myPos = lb.findIndex(r => r.userId === userId) + 1
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 10, color: '#fff', marginBottom: 4 }}>{t.name}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+            {t.type === 'streak' ? '🔥 Mejor racha' : '⭐ Más puntos'} · ⏱ {timeStr} restantes
+          </div>
+        </div>
+        <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 16, color: 'var(--gold)', textAlign: 'right' }}>{t.prize}</div>
+      </div>
+
+      {/* My score */}
+      {myScore && (
+        <div style={{ background: 'rgba(34,211,238,.08)', border: '1px solid rgba(34,211,238,.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 8, color: 'var(--cyan)' }}>TU POSICIÓN: #{myPos || '—'}</span>
+          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 12, color: 'var(--gold)' }}>
+            {t.type === 'streak' ? `🔥 ${myScore.bestStreak}` : `⭐ ${myScore.totalPoints}`}
+          </span>
+        </div>
+      )}
+
+      {/* Leaderboard */}
+      {lb.length === 0 ? (
+        <div style={{ fontSize: 13, color: 'var(--text-dim)', textAlign: 'center', padding: '12px 0' }}>Sin participantes aún. ¡Sé el primero!</div>
+      ) : (
+        <div className="ranking-cols-header">
+          <span></span><span>JUGADOR</span>
+          <span>{t.type === 'streak' ? '🔥 RACHA' : '⭐ PUNTOS'}</span>
+          <span>{t.type === 'streak' ? '⭐ PUNTOS' : '🔥 RACHA'}</span>
+        </div>
+      )}
+      {lb.map((row, i) => (
+        <div key={row.userId} className={`ranking-row-detail ${row.userId === userId ? 'own' : ''}`}>
+          <span className="rank-pos">
+            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}
+          </span>
+          <div className="rank-player">
+            <div className="rank-avatar">{row.avatar ?? '₿'}</div>
+            <div className="rank-player-info">
+              <div className="rank-player-name">{row.username}</div>
+              <div className="rank-player-level">NVL {row.level}</div>
+            </div>
+          </div>
+          <div className="rank-streak-cell">
+            <span className="rank-streak-val">{t.type === 'streak' ? row.bestStreak : row.totalPoints}</span>
+            <span className="rank-streak-label">{t.type === 'streak' ? 'aciertos' : 'pts'}</span>
+          </div>
+          <div className="rank-best-cell">
+            <span className="rank-best-val">{t.type === 'streak' ? row.totalPoints : row.bestStreak}</span>
+            <span className="rank-best-label">{t.type === 'streak' ? 'pts' : 'racha'}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function GamePage() {
   const { user, updateUser, logout } = useAuth()
@@ -278,84 +353,20 @@ export default function GamePage() {
 
       {navTab === 'ranking' && (
         <div className="tab-page">
-          <div className="tab-page-title">🏆 RANKING DEL DÍA</div>
-          <div className="tab-page-sub">Ordenado por mejor racha · Se renueva a medianoche</div>
+          <div className="tab-page-title">🏆 TORNEOS</div>
+          <div className="tab-page-sub">Tu mejor racha desde el inicio de cada torneo</div>
 
-          {/* Active tournaments */}
-          {tournaments.length > 0 && (
-            <div className="card" style={{ padding: 16, marginBottom: 8, background: 'rgba(252,211,77,.06)', borderColor: 'rgba(252,211,77,.3)' }}>
-              <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: 'var(--gold)', marginBottom: 10 }}>🏆 TORNEOS ACTIVOS</div>
-              {tournaments.map(t => {
-                const ends = new Date(t.endAt)
-                const diff = Math.max(0, ends - Date.now())
-                const days = Math.floor(diff / 86400000)
-                const hrs  = Math.floor((diff % 86400000) / 3600000)
-                return (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(252,211,77,.1)' }}>
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#fff' }}>{t.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
-                        {t.type === 'streak' ? '🔥 Mejor racha' : '⭐ Más puntos'} · {days > 0 ? `${days}d ${hrs}h` : `${hrs}h`} restantes
-                      </div>
-                    </div>
-                    <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 14, color: 'var(--gold)', textAlign: 'right' }}>{t.prize}</div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {ranking.length === 0 ? (
+          {tournaments.length === 0 ? (
             <div className="card" style={{ padding: 24, textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-              Nadie jugó todavía hoy. ¡Sé el primero!
+              No hay torneos activos en este momento.
             </div>
-          ) : (<>
-            <div className="ranking-cols-header">
-              <span></span><span>JUGADOR</span><span>🔥 RACHA</span><span>⭐ MEJOR</span>
-            </div>
-            {ranking.map(row => (
-              <div key={row.userId} className={`ranking-row-detail card ${row.userId === user?.id ? 'own' : ''}`} style={{ marginBottom: 8 }}>
-                <span className={`rank-pos ${posColor(row.position)}`}>
-                  {row.position === 1 ? '🥇' : row.position === 2 ? '🥈' : row.position === 3 ? '🥉' : `#${row.position}`}
-                </span>
-                <div className="rank-player">
-                  <div className="rank-avatar">{row.avatar ?? '₿'}</div>
-                  <div className="rank-player-info">
-                    <div className="rank-player-name">{row.username}</div>
-                    <div className="rank-player-level">NVL {row.level}</div>
-                  </div>
-                </div>
-                <div className="rank-streak-cell">
-                  <span className="rank-streak-val">{row.bestStreak ?? 0}</span>
-                  <span className="rank-streak-label">aciertos</span>
-                </div>
-                <div className="rank-best-cell">
-                  <span className="rank-best-val">{fmtPts(row.bestPoints ?? row.points ?? 0)}</span>
-                  <span className="rank-best-label">pts</span>
-                </div>
-              </div>
-            ))}
-          </>)}
-
-          <div className="card" style={{ padding: 16, marginTop: 16 }}>
-            <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 8, color: 'var(--gold)', marginBottom: 8 }}>TU POSICIÓN HOY</div>
-            {(() => {
-              const myRow = ranking.find(r => r.userId === user?.id)
-              return myRow ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 14, color: 'var(--cyan)' }}>#{myRow.position}</span>
-                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 12, color: '#fff' }}>{user?.username}</span>
-                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: 12, color: 'var(--gold)' }}>🔥 {myRow.bestStreak}</span>
-                </div>
-              ) : (
-                <div style={{ fontSize: 13, color: 'var(--text-dim)' }}>Aún no apareces. ¡Juega una ronda!</div>
-              )
-            })()}
-          </div>
+          ) : tournaments.map(t => (
+            <TournamentLeaderboard key={t.id} tournament={t} userId={user?.id} />
+          ))}
         </div>
       )}
 
-      {navTab === 'shop' && (
+            {navTab === 'shop' && (
         <div className="tab-page">
           <div className="tab-page-title">🎟 TIENDA</div>
           <div className="tab-page-sub">Compra stickers para seguir jugando</div>
