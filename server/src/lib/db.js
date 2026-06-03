@@ -353,7 +353,7 @@ export const Tournaments = {
     return get('SELECT * FROM tournaments WHERE id = ?', [id])
   },
   findAll:    ()   => all('SELECT * FROM tournaments ORDER BY startAt DESC'),
-  findActive: ()   => all("SELECT * FROM tournaments WHERE status = 'active' AND startAt <= datetime('now') AND endAt >= datetime('now') ORDER BY endAt ASC"),
+  findActive: ()   => all("SELECT * FROM tournaments WHERE status = 'active' AND endAt >= datetime('now') ORDER BY endAt ASC"),
   findExpired:()   => all("SELECT * FROM tournaments WHERE status = 'active' AND endAt < datetime('now')"),
   findById:   (id) => get('SELECT * FROM tournaments WHERE id = ?', [id]),
   update:     (id, fields) => {
