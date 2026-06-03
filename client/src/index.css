@@ -3449,3 +3449,89 @@ details[open] .how-arrow {
 .prize-card {
   animation: prize-glow-pulse 3s ease-in-out infinite !important;
 }
+
+/* ── Prize stack (Opción A) ──────────────────────────────── */
+.prize-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.prize-card {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px !important;
+  border-radius: 12px !important;
+}
+
+.prize-card-daily {
+  background: var(--bg-2);
+  border: 2px solid var(--gold) !important;
+  box-shadow: 0 0 16px rgba(252,211,77,.15);
+  animation: prize-glow-pulse 3s ease-in-out infinite;
+}
+
+.prize-card-tournament {
+  background: rgba(139,92,246,.1);
+  border: 1.5px solid rgba(139,92,246,.4) !important;
+}
+
+.prize-card-left, .prize-card-right {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.prize-card-right { text-align: right; align-items: flex-end; }
+
+.prize-countdown {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.prize-amount-sm { font-size: 18px !important; }
+
+/* ── Prize carousel (Opción C) ───────────────────────────── */
+.prize-carousel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0 4px;
+  scrollbar-width: none;
+  margin-bottom: 4px;
+}
+.prize-carousel::-webkit-scrollbar { display: none; }
+
+.pci {
+  flex-shrink: 0;
+  background: rgba(7,2,26,.8);
+  border: 1px solid rgba(139,92,246,.35);
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 110px;
+}
+.pci-name {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.pci-prize {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+/* Desktop: prize stack side by side */
+@media (min-width: 881px) {
+  .prize-stack { flex-direction: row; }
+  .prize-card  { flex: 1; }
+}

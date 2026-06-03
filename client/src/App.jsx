@@ -6,6 +6,7 @@ import GamePage from './pages/GamePage'
 import LandingPage      from './pages/LandingPage'
 import VerifyEmailPage    from './pages/VerifyEmailPage'
 import PaymentResultPage from './pages/PaymentResultPage'
+import AdminPage         from './pages/AdminPage'
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/ref/:username"  element={<RefRoute />} />
           <Route path="/verify-email"    element={<VerifyEmailPage />} />
           <Route path="/payment/result"   element={<ProtectedRoute><PaymentResultPage /></ProtectedRoute>} />
+          <Route path="/admin"             element={<AdminPage />} />
           <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/game"     element={<ProtectedRoute><GamePage /></ProtectedRoute>} />

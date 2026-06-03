@@ -42,6 +42,11 @@ export const api = {
     paymentResult: (buyOrder, status) => req('GET', `/game/stickers/payment-result?buy_order=${buyOrder}&status=${status}`),
     history:  ()           => req('GET',  '/game/history'),
   },
+  tournaments: {
+    list:        ()   => req('GET', '/tournaments'),
+    leaderboard: (id) => req('GET', `/tournaments/${id}/leaderboard`),
+    me:          (id) => req('GET', `/tournaments/${id}/me`),
+  },
   ranking: {
     daily:   () => req('GET', '/ranking/daily'),
     monthly: () => req('GET', '/ranking/monthly'),

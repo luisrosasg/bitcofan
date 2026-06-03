@@ -13,7 +13,8 @@ import { getTodayString } from './lib/gameLogic.js'
 import authRoutes    from './routes/auth.js'
 import gameRoutes from './routes/game.js'
 import rankingRoutes  from './routes/ranking.js'
-import referralRoutes from './routes/referrals.js'
+import referralRoutes    from './routes/referrals.js'
+import tournamentRoutes, { finishTournament } from './routes/tournaments.js'
 import {
   setCurrentPrice, getCurrentPrice, getCurrentRound,
   startNewRound, settleCurrentRound,
@@ -145,7 +146,8 @@ app.use('/api/game',    gameRoutes)
 app.use('/api/ranking',  rankingRoutes)
 app.use('/api/referrals', referralRoutes)
 app.use('/api/ref',       referralRoutes)
-app.use('/api/payments',  gameRoutes)  // DalePago webhook
+app.use('/api/payments',    gameRoutes)  // DalePago webhook
+app.use('/api/tournaments', tournamentRoutes)
 app.get('/api/health', (_, res) => res.json({ ok: true }))
 
 // ── Catch-all: serve React app for non-API routes ────────
@@ -173,10 +175,36 @@ async function main() {
       setTimeout(() => {
         const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
         DailyScores.resetDay(yesterday)
-        scheduleMidnightReset()   // reschedule for next midnight
+        scheduleMidnightReset()
+
+    // ── Tournament cron: check every minute for expired tournaments ──
+    setInterval(async () => {
+      try {
+        const { Tournaments } = await import('./lib/db.js')
+        const expired = Tournaments.findExpired()
+        for (const t of expired) {
+          await finishTournament(t)
+        }
+      } catch (e) {
+        console.error('[tournament cron]', e.message)
+      }
+    }, 60 * 1000)   // reschedule for next midnight
       }, msUntilMidnight)
     }
     scheduleMidnightReset()
+
+    // ── Tournament cron: check every minute for expired tournaments ──
+    setInterval(async () => {
+      try {
+        const { Tournaments } = await import('./lib/db.js')
+        const expired = Tournaments.findExpired()
+        for (const t of expired) {
+          await finishTournament(t)
+        }
+      } catch (e) {
+        console.error('[tournament cron]', e.message)
+      }
+    }, 60 * 1000)
   })
 }
 

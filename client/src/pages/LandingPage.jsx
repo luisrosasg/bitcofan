@@ -229,13 +229,15 @@ export default function LandingPage() {
   const { price, prevPrice, pct24h, history, connected } = useLiveBtc()
   const [faqOpen, setFaqOpen] = useState(0)
   const [prizes, setPrizes]       = useState({ daily: 100000, monthly: 1000000 })
-  const [topRanking, setTopRanking] = useState([])
+  const [topRanking, setTopRanking]     = useState([])
+  const [activeTournaments, setActiveTournaments] = useState([])
   const dir = price != null && prevPrice != null ? (price >= prevPrice ? 'up' : 'down') : 'up'
 
   // Fetch prizes and ranking from server
   useEffect(() => {
     api.ranking.prizes().then(setPrizes).catch(() => {})
     api.ranking.daily().then(({ ranking }) => setTopRanking(ranking)).catch(() => {})
+    fetch('/api/tournaments').then(r => r.json()).then(d => setActiveTournaments(d.tournaments || [])).catch(() => {})
   }, [])
 
   // Countdown to midnight UTC (prize reset)
@@ -338,7 +340,7 @@ export default function LandingPage() {
         </div>
         <div className="lp-step-tag lp-tag-gold">
           🎁 PREMIO DIARIO EN EFECTIVO<br/>
-          <span className="lp-prize-tag-amount">${prizes.daily.toLocaleString('es-CL')}</span>
+          <span className="lp-prize-tag-amount">${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</span>
         </div>
       </div>
     )},
@@ -396,17 +398,33 @@ export default function LandingPage() {
 
 
 
-          {/* Premio del día countdown */}
-          <div className="lp-hero-prize-row">
-            <div className="lp-hero-prize-card">
-              <span className="lp-hero-prize-label">🏆 PREMIO HOY</span>
-              <span className="lp-hero-prize-amount">${prizes.daily.toLocaleString('es-CL')}</span>
+          {/* Torneos activos — igual que en el juego */}
+          {activeTournaments.length > 0 ? activeTournaments.map(t => {
+            const diff = Math.max(0, new Date(t.endAt) - Date.now())
+            const days = Math.floor(diff / 86400000)
+            const hrs  = Math.floor((diff % 86400000) / 3600000)
+            const min  = Math.floor((diff % 3600000) / 60000)
+            const timeStr = days > 0 ? `${days}d ${hrs}h` : `${hrs}h ${min}m`
+            return (
+              <div key={t.id} className="lp-hero-prize-row">
+                <div className="lp-hero-prize-card" style={{ flex: 1, borderColor: 'rgba(139,92,246,.5)', background: 'rgba(139,92,246,.1)' }}>
+                  <span className="lp-hero-prize-label">🎯 {t.name.toUpperCase()}</span>
+                  <span className="lp-hero-prize-amount" style={{ fontSize: 22 }}>{t.prize}</span>
+                </div>
+                <div className="lp-hero-prize-card lp-hero-countdown-card lp-countdown-sm">
+                  <span className="lp-hero-prize-label">⏱ QUEDAN</span>
+                  <span className="lp-hero-countdown">{timeStr}</span>
+                </div>
+              </div>
+            )
+          }) : (
+            <div className="lp-hero-prize-row">
+              <div className="lp-hero-prize-card" style={{ flex: 1, opacity: .5 }}>
+                <span className="lp-hero-prize-label">🏆 PRÓXIMO PREMIO</span>
+                <span className="lp-hero-prize-amount" style={{ fontSize: 18, color: 'var(--text-dim)' }}>Próximamente</span>
+              </div>
             </div>
-            <div className="lp-hero-prize-card lp-hero-countdown-card lp-countdown-sm">
-              <span className="lp-hero-prize-label">⏱ QUEDAN</span>
-              <span className="lp-hero-countdown">{countdown}</span>
-            </div>
-          </div>
+          )}
 
           {/* Best streak — below prizes, always visible */}
           <div className="lp-hero-best-streak">
@@ -520,14 +538,14 @@ export default function LandingPage() {
                 <span style={{ fontSize: 36 }}>🏆</span>
                 <div>
                   <div className="lp-prize-label">PREMIO DIARIO · MEJOR RACHA</div>
-                  <div className="lp-prize-value">${prizes.daily.toLocaleString('es-CL')}</div>
+                  <div className="lp-prize-value">${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</div>
                 </div>
               </div>
               <div className="lp-prize-card lp-prize-gold">
                 <span style={{ fontSize: 36 }}>💎</span>
                 <div>
                   <div className="lp-prize-label" style={{ color: '#fcd34d' }}>PREMIO MENSUAL · MEJOR RACHA DEL MES</div>
-                  <div className="lp-prize-value">${prizes.monthly.toLocaleString('es-CL')}</div>
+                  <div className="lp-prize-value">${typeof prizes.monthly === 'number' ? prizes.monthly.toLocaleString('es-CL') : prizes.monthly}</div>
                 </div>
               </div>
 

@@ -108,6 +108,36 @@ function createTables() {
   `)
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS tournaments (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT,
+      prize       TEXT NOT NULL,
+      type        TEXT NOT NULL DEFAULT 'streak',
+      startAt     TEXT NOT NULL,
+      endAt       TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'active',
+      winnerId    TEXT,
+      createdAt   TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(winnerId) REFERENCES users(id)
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tournament_scores (
+      id             TEXT PRIMARY KEY,
+      tournamentId   TEXT NOT NULL,
+      userId         TEXT NOT NULL,
+      bestStreak     INTEGER DEFAULT 0,
+      totalPoints    INTEGER DEFAULT 0,
+      updatedAt      TEXT DEFAULT (datetime('now')),
+      UNIQUE(tournamentId, userId),
+      FOREIGN KEY(tournamentId) REFERENCES tournaments(id),
+      FOREIGN KEY(userId) REFERENCES users(id)
+    )
+  `)
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS referrals (
       id            TEXT PRIMARY KEY,
       referrerId    TEXT NOT NULL,
@@ -116,6 +146,36 @@ function createTables() {
       createdAt     TEXT DEFAULT (datetime('now')),
       FOREIGN KEY(referrerId) REFERENCES users(id),
       FOREIGN KEY(referredId) REFERENCES users(id)
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tournaments (
+      id          TEXT PRIMARY KEY,
+      name        TEXT NOT NULL,
+      description TEXT,
+      prize       TEXT NOT NULL,
+      type        TEXT NOT NULL DEFAULT 'streak',
+      startAt     TEXT NOT NULL,
+      endAt       TEXT NOT NULL,
+      status      TEXT NOT NULL DEFAULT 'active',
+      winnerId    TEXT,
+      createdAt   TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(winnerId) REFERENCES users(id)
+    )
+  `)
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tournament_scores (
+      id             TEXT PRIMARY KEY,
+      tournamentId   TEXT NOT NULL,
+      userId         TEXT NOT NULL,
+      bestStreak     INTEGER DEFAULT 0,
+      totalPoints    INTEGER DEFAULT 0,
+      updatedAt      TEXT DEFAULT (datetime('now')),
+      UNIQUE(tournamentId, userId),
+      FOREIGN KEY(tournamentId) REFERENCES tournaments(id),
+      FOREIGN KEY(userId) REFERENCES users(id)
     )
   `)
 
@@ -271,6 +331,53 @@ export const DailyScores = {
 
 // ── Init export ──────────────────────────────────────────────
 export { initDb }
+
+// ── Tournaments DAO ──────────────────────────────────────────
+export const Tournaments = {
+  create({ id, name, description, prize, type, startAt, endAt }) {
+    run(`INSERT INTO tournaments (id, name, description, prize, type, startAt, endAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`, [id, name, description, prize, type, startAt, endAt])
+    return get('SELECT * FROM tournaments WHERE id = ?', [id])
+  },
+  findAll:    ()   => all('SELECT * FROM tournaments ORDER BY startAt DESC'),
+  findActive: ()   => all("SELECT * FROM tournaments WHERE status = 'active' AND startAt <= datetime('now') AND endAt >= datetime('now') ORDER BY endAt ASC"),
+  findExpired:()   => all("SELECT * FROM tournaments WHERE status = 'active' AND endAt < datetime('now')"),
+  findById:   (id) => get('SELECT * FROM tournaments WHERE id = ?', [id]),
+  update:     (id, fields) => {
+    const cols = Object.keys(fields).map(k => `${k} = ?`).join(', ')
+    run(`UPDATE tournaments SET ${cols} WHERE id = ?`, [...Object.values(fields), id])
+    return get('SELECT * FROM tournaments WHERE id = ?', [id])
+  },
+  delete: (id) => run('DELETE FROM tournaments WHERE id = ?', [id]),
+
+  // Scores
+  upsertScore(tournamentId, userId, streak, points) {
+    const existing = get('SELECT * FROM tournament_scores WHERE tournamentId = ? AND userId = ?', [tournamentId, userId])
+    if (existing) {
+      const newStreak = Math.max(existing.bestStreak, streak)
+      const newPoints = existing.totalPoints + points
+      run(`UPDATE tournament_scores SET bestStreak = ?, totalPoints = ?, updatedAt = datetime('now')
+           WHERE tournamentId = ? AND userId = ?`, [newStreak, newPoints, tournamentId, userId])
+    } else {
+      run(`INSERT INTO tournament_scores (id, tournamentId, userId, bestStreak, totalPoints)
+           VALUES (?, ?, ?, ?, ?)`, [crypto.randomUUID(), tournamentId, userId, streak, points])
+    }
+  },
+
+  getLeaderboard(tournamentId, type = 'streak', limit = 20) {
+    const orderBy = type === 'streak' ? 'bestStreak DESC, totalPoints DESC' : 'totalPoints DESC, bestStreak DESC'
+    return all(`
+      SELECT ts.*, u.username, u.avatar, u.level
+      FROM tournament_scores ts JOIN users u ON ts.userId = u.id
+      WHERE ts.tournamentId = ?
+      ORDER BY ${orderBy} LIMIT ?
+    `, [tournamentId, limit])
+  },
+
+  getScore(tournamentId, userId) {
+    return get('SELECT * FROM tournament_scores WHERE tournamentId = ? AND userId = ?', [tournamentId, userId])
+  },
+}
 
 // ── Referrals DAO ────────────────────────────────────────────
 export const Referrals = {

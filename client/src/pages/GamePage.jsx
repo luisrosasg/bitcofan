@@ -22,6 +22,8 @@ export default function GamePage() {
   const [betLoading, setBetLoading] = useState(false)
   const [betToast, setBetToast]     = useState(null)
   const [prizes, setPrizes]           = useState({ daily: 100000, monthly: 1000000 })
+  const [tournaments, setTournaments]   = useState([])
+  const [countdown, setCountdown]       = useState('')
   const [ctxMsg, setCtxMsg]           = useState(null)
   const [navTab, setNavTab]           = useState('game')
   const [ghostMode, setGhostMode]     = useState(false)
@@ -116,6 +118,7 @@ export default function GamePage() {
 
   useEffect(() => {
     api.ranking.prizes().then(setPrizes).catch(() => {})
+    api.tournaments.list().then(d => setTournaments(d.tournaments || [])).catch(() => {})
     api.ranking.daily().then(({ ranking }) => setRanking(ranking)).catch(() => {})
     const id = setInterval(() => {
       api.ranking.daily().then(({ ranking }) => setRanking(ranking)).catch(() => {})
@@ -278,6 +281,30 @@ export default function GamePage() {
           <div className="tab-page-title">🏆 RANKING DEL DÍA</div>
           <div className="tab-page-sub">Ordenado por mejor racha · Se renueva a medianoche</div>
 
+          {/* Active tournaments */}
+          {tournaments.length > 0 && (
+            <div className="card" style={{ padding: 16, marginBottom: 8, background: 'rgba(252,211,77,.06)', borderColor: 'rgba(252,211,77,.3)' }}>
+              <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: 'var(--gold)', marginBottom: 10 }}>🏆 TORNEOS ACTIVOS</div>
+              {tournaments.map(t => {
+                const ends = new Date(t.endAt)
+                const diff = Math.max(0, ends - Date.now())
+                const days = Math.floor(diff / 86400000)
+                const hrs  = Math.floor((diff % 86400000) / 3600000)
+                return (
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(252,211,77,.1)' }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 9, color: '#fff' }}>{t.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
+                        {t.type === 'streak' ? '🔥 Mejor racha' : '⭐ Más puntos'} · {days > 0 ? `${days}d ${hrs}h` : `${hrs}h`} restantes
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 14, color: 'var(--gold)', textAlign: 'right' }}>{t.prize}</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {ranking.length === 0 ? (
             <div className="card" style={{ padding: 24, textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
               Nadie jugó todavía hoy. ¡Sé el primero!
@@ -360,13 +387,30 @@ export default function GamePage() {
           <img src="/bitcofan-logo.png" alt="BitcoFan" className="game-logo-img" />
           
         </div>
-        <div className="prize-card">
-          <span className="prize-label">🏆 PREMIO DIARIO</span>
-          <span className="prize-amount">${prizes.daily.toLocaleString('es-CL')}</span>
-          <div style={{ fontFamily: 'var(--font-pixel)', fontSize: 7, color: 'var(--text-dim)', marginTop: 6 }}>
-            Al ganador del día
-          </div>
+        {/* A: Active tournament prize cards only */}
+        {tournaments.length > 0 && (
+        <div className="prize-stack">
+          {tournaments.map(t => {
+            const diff = Math.max(0, new Date(t.endAt) - Date.now())
+            const days = Math.floor(diff / 86400000)
+            const hrs  = Math.floor((diff % 86400000) / 3600000)
+            const min  = Math.floor((diff % 3600000) / 60000)
+            const timeStr = days > 0 ? `${days}d ${hrs}h` : `${hrs}h ${min}m`
+            return (
+              <div key={t.id} className="prize-card prize-card-tournament">
+                <div className="prize-card-left">
+                  <span className="prize-label">🎯 {t.name.toUpperCase()}</span>
+                  <span className="prize-amount prize-amount-sm">{t.prize}</span>
+                </div>
+                <div className="prize-card-right">
+                  <span className="prize-label">⏱ QUEDAN</span>
+                  <span className="prize-countdown">{timeStr}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
+        )}
 
         {!ghostMode && (user?.stickers ?? 0) === 0 && (
           <div className="ghost-entry-btns">
@@ -383,12 +427,39 @@ export default function GamePage() {
         <div className={`card game-card ${winFlash ? 'game-win-flash' : ''}`}>
 
           {/* Ghost mode banner — inside card */}
+          {/* C: Prize carousel above chart when in active bet */}
+          {(activeBet || ghostBet) && tournaments.length > 0 && (
+            <div className="prize-carousel">
+              {tournaments.map(t => (
+                <div key={t.id} className="pci">
+                  <span className="pci-name">{t.name}</span>
+                  <span className="pci-prize">{t.prize}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {ghostMode && (
             <div className="ghost-banner">
               <span>👻 MODO FANTASMA — Sin stickers, sin ranking</span>
               <button className="ghost-exit-btn" onClick={() => { setGhostMode(false); setGhostStreak(0); setGhostBet(null); setGhostResult(null) }}>
                 SALIR
               </button>
+            </div>
+          )}
+
+          {/* C: Prize carousel — always visible above chart */}
+          {(activeBet || ghostBet) && tournaments.length > 0 && (
+            <div className="prize-carousel">
+              {tournaments.map(t => {
+                const score = null
+                return (
+                  <div key={t.id} className="prize-carousel-item">
+                    <span className="pci-name">{t.name}</span>
+                    <span className="pci-prize">{t.prize}</span>
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -510,7 +581,7 @@ export default function GamePage() {
                 <div className="ghost-upsell-title">👻 MODO FANTASMA</div>
                 <div className="ghost-upsell-row"><span>Racha</span><strong>{ghostStreak}</strong></div>
                 <div className="ghost-upsell-row"><span>Ranking est.</span><strong>#{Math.max(1, (ranking.length + 1) - ranking.filter(r => r.bestStreak < ghostStreak).length)}</strong></div>
-                <div className="ghost-upsell-row"><span>Premio</span><strong style={{color:'var(--gold)'}}>${prizes.daily.toLocaleString('es-CL')}</strong></div>
+                <div className="ghost-upsell-row"><span>Premio</span><strong style={{color:'var(--gold)'}}>${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</strong></div>
                 <button className="btn btn-gold" style={{width:'100%',marginTop:8,fontSize:9}}
                   onClick={() => { setGhostMode(false); setNavTab('shop') }}>
                   🎟 CONSEGUIR STICKERS
@@ -655,7 +726,7 @@ export default function GamePage() {
                   {ghostResult.streak >= 3 && (
                     <div className="ghost-modal-upsell">
                       🏆 Con stickers reales ya estarías en el ranking.<br/>
-                      Premio hoy: <strong style={{color:'var(--gold)'}}>${prizes.daily.toLocaleString('es-CL')}</strong>
+                      Premio hoy: <strong style={{color:'var(--gold)'}}>${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</strong>
                     </div>
                   )}
                 </>
@@ -694,7 +765,7 @@ export default function GamePage() {
           </div>
           <div className="ghost-upsell-row">
             <span>Premio potencial:</span>
-            <strong style={{ color: 'var(--gold)' }}>${prizes.daily.toLocaleString('es-CL')}</strong>
+            <strong style={{ color: 'var(--gold)' }}>${typeof prizes.daily === 'number' ? prizes.daily.toLocaleString('es-CL') : prizes.daily}</strong>
           </div>
           <div className="ghost-upsell-sub">¡Con stickers reales esto ya sería tuyo!</div>
           <button className="btn btn-gold" style={{ width: '100%', marginTop: 12 }}

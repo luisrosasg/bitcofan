@@ -1,4 +1,4 @@
-import { Rounds, Bets, Users, DailyScores } from '../lib/db.js'
+import { Rounds, Bets, Users, DailyScores, Tournaments } from '../lib/db.js'
 import { calcPoints, didWin, getLevelFromXp, getXpForRound, getTodayString } from '../lib/gameLogic.js'
 import { emitToUser, broadcastAll } from '../lib/events.js'
 
@@ -78,6 +78,14 @@ export function settleCurrentRound() {
     })
 
     DailyScores.upsert(bet.userId, today, points, newStreak)
+
+    // Update tournament scores for all active tournaments
+    if (won) {
+      const activeTournaments = Tournaments.findActive()
+      for (const t of activeTournaments) {
+        Tournaments.upsertScore(t.id, bet.userId, newStreak, points)
+      }
+    }
 
     // Check if this user just reached #1 and notify them
     if (won) {
