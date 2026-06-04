@@ -74,7 +74,7 @@ function createTables() {
       username   TEXT UNIQUE NOT NULL,
       password   TEXT NOT NULL,
       points     INTEGER DEFAULT 0,
-      stickers   INTEGER DEFAULT 3,
+      stickers   INTEGER DEFAULT 0,
       streak     INTEGER DEFAULT 0,
       bestStreak INTEGER DEFAULT 0,
       xp         INTEGER DEFAULT 0,
