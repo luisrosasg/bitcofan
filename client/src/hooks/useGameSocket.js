@@ -23,7 +23,8 @@ export function useGameSocket() {
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return
 
     try {
-      const ws = new WebSocket(`ws://${location.host}/ws`)
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+      const ws = new WebSocket(`${proto}://${location.host}/ws`)
       wsRef.current = ws
 
       ws.onopen = () => {
