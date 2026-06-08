@@ -27,3 +27,14 @@ export async function createPaymentLink({ amount, buyOrder, sessionId, returnUrl
   }
   return data.payment // { id, buyOrder, amount, token, payment_url }
 }
+
+export async function getPaymentStatus(paymentId) {
+  const res = await fetch(`${API_URL}/api/v1/payment-links/${paymentId}`, {
+    headers: {
+      'X-Api-Key-Id':     KEY_ID,
+      'X-Api-Key-Secret': KEY_SECRET,
+    },
+  })
+  const data = await res.json()
+  return data.payment ?? data
+}
