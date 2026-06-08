@@ -8,10 +8,23 @@ let muted = false
 export function setMuted(val) { muted = val }
 export function getMuted()      { return muted }
 
+// Resume AudioContext on first user touch (required on mobile)
+function unlockAudio() {
+  if (ctx && ctx.state === 'suspended') ctx.resume()
+}
+if (typeof window !== 'undefined') {
+  ;['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt =>
+    window.addEventListener(evt, unlockAudio, { once: false, passive: true })
+  )
+}
+
 function getCtx() {
-  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
-  // Resume if suspended (browser autoplay policy)
-  if (ctx.state === 'suspended') ctx.resume()
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)()
+    // Try to resume immediately
+    ctx.resume().catch(() => {})
+  }
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {})
   return ctx
 }
 

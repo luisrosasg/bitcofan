@@ -265,7 +265,16 @@ export default function GamePage() {
     setCtxMsg({ text: msgs[dir][status][phase], winning, phase })
   }, [activeBet, price, timeLeft, round])
 
+  // Unlock audio on first interaction (mobile fix)
+  const unlockAudio = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (AudioCtx) { const a = new AudioCtx(); a.resume(); }
+    } catch {}
+  }
+
   const toggleMute = () => {
+    unlockAudio()
     const next = !muted
     setMutedState(next)
     localStorage.setItem('cc_muted', next ? '1' : '0')
