@@ -4,25 +4,36 @@
 
 let ctx = null
 let muted = false
+let unlocked = false
 
 export function setMuted(val) { muted = val }
 export function getMuted()      { return muted }
 
-// Resume AudioContext on first user touch (required on mobile)
-function unlockAudio() {
-  if (ctx && ctx.state === 'suspended') ctx.resume()
-}
-if (typeof window !== 'undefined') {
-  ;['touchstart', 'touchend', 'mousedown', 'keydown'].forEach(evt =>
-    window.addEventListener(evt, unlockAudio, { once: false, passive: true })
-  )
+export function unlockAudio() {
+  if (unlocked) return
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext
+    if (!AC) return
+    if (!ctx) ctx = new AC()
+    // Must call resume() synchronously inside a user gesture on iOS
+    const p = ctx.resume()
+    if (p && p.then) p.then(() => { unlocked = true })
+    else unlocked = true
+    // Play a silent buffer to fully unlock on iOS
+    const buf = ctx.createBuffer(1, 1, 22050)
+    const src = ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(ctx.destination)
+    src.start(0)
+  } catch {}
 }
 
 function getCtx() {
   if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)()
-    // Try to resume immediately
-    ctx.resume().catch(() => {})
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext
+      ctx = new AC()
+    } catch { return null }
   }
   if (ctx.state === 'suspended') ctx.resume().catch(() => {})
   return ctx

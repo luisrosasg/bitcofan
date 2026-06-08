@@ -7,7 +7,7 @@ import PriceChart from '../components/PriceChart'
 import Toast from '../components/Toast'
 import ResultModal from '../components/ResultModal'
 import ProfilePage from './ProfilePage'
-import { playLock, playTick, playTickUrgent, playWin, playLose, setMuted, getMuted } from '../lib/sounds'
+import { playLock, playTick, playTickUrgent, playWin, playLose, setMuted, getMuted, unlockAudio } from '../lib/sounds'
 
 function TournamentLeaderboard({ tournament: t, userId }) {
   const [lb, setLb] = React.useState([])
@@ -202,12 +202,14 @@ export default function GamePage() {
   }, [])
 
   const placeGhostBet = useCallback((prediction) => {
+    unlockAudio()
     if (!ghostMode || ghostBet || timeLeft <= 3 || !price) return
     setGhostBet({ prediction, lockedAtPrice: price })
     playLock()
   }, [ghostMode, ghostBet, timeLeft, price])
 
   const placeBet = useCallback(async (prediction) => {
+    unlockAudio() // iOS Chrome: must be inside direct touch handler
     if (!user || activeBet || betLoading) return
     if (user.stickers < 1) { setToast('Sin stickers. ¡Compra más!'); return }
     if (timeLeft <= 3) { setToast('Demasiado tarde. Esperá la próxima ronda.'); return }
@@ -265,16 +267,7 @@ export default function GamePage() {
     setCtxMsg({ text: msgs[dir][status][phase], winning, phase })
   }, [activeBet, price, timeLeft, round])
 
-  // Unlock audio on first interaction (mobile fix)
-  const unlockAudio = () => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext
-      if (AudioCtx) { const a = new AudioCtx(); a.resume(); }
-    } catch {}
-  }
-
   const toggleMute = () => {
-    unlockAudio()
     const next = !muted
     setMutedState(next)
     localStorage.setItem('cc_muted', next ? '1' : '0')
