@@ -259,7 +259,7 @@ export const Users = {
 
   create({ id, email, username, password }) {
     run(
-      `INSERT INTO users (id, email, username, password) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO users (id, email, username, password, stickers) VALUES (?, ?, ?, ?, 0)`,
       [id, email, username, password]
     )
     return this.findById(id)
