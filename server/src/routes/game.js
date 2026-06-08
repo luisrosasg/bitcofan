@@ -4,7 +4,7 @@ import { Users, Bets, Referrals } from '../lib/db.js'
 import { emitToUser } from '../lib/events.js'
 import { authenticate } from '../middleware/auth.js'
 import { getCurrentRound, getCurrentPrice } from '../services/roundService.js'
-import { createPaymentLink, getPaymentStatus } from '../lib/dalepago.js'
+import { createPaymentLink } from '../lib/dalepago.js'
 import { dbGet, dbRun } from '../lib/db.js'
 
 const router = Router()
@@ -137,37 +137,23 @@ router.post('/payments/webhook', async (req, res) => {
 
 // GET /api/game/stickers/payment-result — called after Webpay redirect (no auth needed)
 router.get('/stickers/payment-result', async (req, res) => {
-  const { status, buy_order, token_ws } = req.query
+  const { status, buy_order } = req.query
   try {
     const order = dbGet('SELECT * FROM pending_orders WHERE id = ?', [buy_order])
     if (!order) return res.status(404).json({ error: 'Orden no encontrada' })
 
-    let finalStatus = status
-
-    // If status is uncertain or pending, verify directly with DalePago
-    if (!status || status !== 'AUTHORIZED' || order.status === 'pending') {
-      try {
-        if (order.dalepago_id) {
-          const dp = await getPaymentStatus(order.dalepago_id)
-          finalStatus = dp.status ?? status
-          console.log(`[DalePago] verify ${order.dalepago_id}: ${finalStatus}`)
-        }
-      } catch (e) {
-        console.error('[DalePago] verify error:', e.message)
-      }
-    }
-
-    if ((finalStatus === 'AUTHORIZED' || finalStatus === 'paid') && order.status !== 'completed') {
+    // Deliver if AUTHORIZED and not already done
+    if (status === 'AUTHORIZED' && order.status !== 'completed') {
       dbRun('UPDATE pending_orders SET status = ? WHERE id = ?', ['completed', buy_order])
       await deliverStickers(order.userId, order.pack)
+      console.log(`[payment] Delivered via returnUrl for order ${buy_order}`)
     }
 
     const user = Users.findById(order.userId)
-    if (!user) return res.json({ status: finalStatus })
+    if (!user) return res.json({ status })
     const { password, ...safeUser } = user
-    // Generate fresh token for the user
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
-    res.json({ status: finalStatus, user: safeUser, token })
+    res.json({ status, user: safeUser, token })
   } catch (err) {
     console.error('[payment-result]', err.message)
     res.status(500).json({ error: err.message })
