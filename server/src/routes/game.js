@@ -1,9 +1,10 @@
 import { Router } from 'express'
+import jwt from 'jsonwebtoken'
 import { Users, Bets, Referrals } from '../lib/db.js'
 import { emitToUser } from '../lib/events.js'
 import { authenticate } from '../middleware/auth.js'
 import { getCurrentRound, getCurrentPrice } from '../services/roundService.js'
-import { createPaymentLink } from '../lib/dalepago.js'
+import { createPaymentLink, getPaymentStatus } from '../lib/dalepago.js'
 import { dbGet, dbRun } from '../lib/db.js'
 
 const router = Router()
@@ -134,21 +135,41 @@ router.post('/payments/webhook', async (req, res) => {
   }
 })
 
-// GET /api/game/stickers/payment-result — called after Webpay redirect
-router.get('/stickers/payment-result', authenticate, async (req, res) => {
-  const { status, buy_order } = req.query
+// GET /api/game/stickers/payment-result — called after Webpay redirect (no auth needed)
+router.get('/stickers/payment-result', async (req, res) => {
+  const { status, buy_order, token_ws } = req.query
   try {
-    if (status === 'AUTHORIZED') {
-      const order = dbGet('SELECT * FROM pending_orders WHERE id = ?', [buy_order])
-      if (order && order.status !== 'completed') {
-        dbRun('UPDATE pending_orders SET status = ? WHERE id = ?', ['completed', buy_order])
-        await deliverStickers(order.userId, order.pack)
+    const order = dbGet('SELECT * FROM pending_orders WHERE id = ?', [buy_order])
+    if (!order) return res.status(404).json({ error: 'Orden no encontrada' })
+
+    let finalStatus = status
+
+    // If status is uncertain or pending, verify directly with DalePago
+    if (!status || status !== 'AUTHORIZED' || order.status === 'pending') {
+      try {
+        if (order.dalepago_id) {
+          const dp = await getPaymentStatus(order.dalepago_id)
+          finalStatus = dp.status ?? status
+          console.log(`[DalePago] verify ${order.dalepago_id}: ${finalStatus}`)
+        }
+      } catch (e) {
+        console.error('[DalePago] verify error:', e.message)
       }
     }
-    const user = Users.findById(req.userId)
+
+    if ((finalStatus === 'AUTHORIZED' || finalStatus === 'paid') && order.status !== 'completed') {
+      dbRun('UPDATE pending_orders SET status = ? WHERE id = ?', ['completed', buy_order])
+      await deliverStickers(order.userId, order.pack)
+    }
+
+    const user = Users.findById(order.userId)
+    if (!user) return res.json({ status: finalStatus })
     const { password, ...safeUser } = user
-    res.json({ status, user: safeUser })
+    // Generate fresh token for the user
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    res.json({ status: finalStatus, user: safeUser, token })
   } catch (err) {
+    console.error('[payment-result]', err.message)
     res.status(500).json({ error: err.message })
   }
 })

@@ -15,13 +15,25 @@ export default function PaymentResultPage() {
 
     if (!buyOrder) { setStatus('error'); return }
 
-    api.game.paymentResult(buyOrder, dpStatus)
-      .then(({ status: s, user }) => {
-        if (user) updateUser(user)
-        setStickers(user?.stickers ?? 0)
-        setStatus(s === 'AUTHORIZED' ? 'ok' : s === 'CANCELLED' ? 'cancelled' : 'error')
-      })
-      .catch(() => setStatus('error'))
+    const check = (attempt = 0) => {
+      // Use fetch directly — no auth required for this endpoint
+      fetch(`/api/game/stickers/payment-result?buy_order=${buyOrder}&status=${dpStatus || ''}`)
+        .then(r => r.json())
+        .then(({ status: s, user, token }) => {
+          // If server returns a fresh token, update localStorage
+          if (token) localStorage.setItem('cc_token', token)
+          if (user) updateUser(user)
+          setStickers(user?.stickers ?? 0)
+          const mapped = (s === 'AUTHORIZED' || s === 'paid') ? 'ok'
+                       : s === 'CANCELLED' ? 'cancelled'
+                       : s === 'pending' && attempt < 4 ? 'checking'
+                       : 'error'
+          setStatus(mapped)
+          if (mapped === 'checking') setTimeout(() => check(attempt + 1), 2500)
+        })
+        .catch(() => setStatus('error'))
+    }
+    check()
   }, [])
 
   return (
@@ -29,10 +41,10 @@ export default function PaymentResultPage() {
       <div className="card auth-card" style={{ textAlign: 'center', maxWidth: 380 }}>
         <img src="/bitcofan-logo.png" alt="BitcoFan" className="auth-logo-img" />
 
-        {status === 'loading' && (
+        {(status === 'loading' || status === 'checking') && (
           <>
             <div className="spinner" style={{ margin: '24px auto' }} />
-            <p style={{ color: 'var(--text-dim)' }}>Confirmando tu pago...</p>
+            <p style={{ color: 'var(--text-dim)' }}>{status === 'checking' ? 'Verificando con el banco...' : 'Confirmando tu pago...'}</p>
           </>
         )}
 
