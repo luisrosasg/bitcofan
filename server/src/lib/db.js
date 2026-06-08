@@ -39,6 +39,8 @@ async function initDb() {
   try { db.run("ALTER TABLE users ADD COLUMN phone TEXT") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN roundsPlayed INTEGER DEFAULT 0") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN rounds INTEGER DEFAULT 0") } catch {}
+  // Fix users created with DEFAULT 3 who never purchased
+  try { db.run("UPDATE users SET stickers = 0 WHERE (firstPurchaseDone = 0 OR firstPurchaseDone IS NULL) AND stickers = 3") } catch {}
 
   db.run(`CREATE TABLE IF NOT EXISTS pending_orders (
     id          TEXT PRIMARY KEY,
