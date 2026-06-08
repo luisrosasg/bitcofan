@@ -66,10 +66,10 @@ router.post('/bet', authenticate, async (req, res) => {
 })
 
 const PACKS = {
-  1:  { amount: 1,  price: 1000  },
-  5:  { amount: 5,  price: 4000  },
-  15: { amount: 15, price: 10000 },
-  50: { amount: 50, price: 30000 },
+  1:  { amount: 5,   price: 1000,  display: 1  },   // 1 sticker = 5 intentos
+  5:  { amount: 25,  price: 4000,  display: 5  },   // 5 stickers = 25 intentos
+  15: { amount: 75,  price: 10000, display: 15 },   // 15 stickers = 75 intentos
+  50: { amount: 250, price: 30000, display: 50 },   // 50 stickers = 250 intentos
 }
 
 // POST /api/game/stickers/checkout — create DalePago payment link
@@ -161,7 +161,7 @@ async function deliverStickers(userId, packId) {
   if (!user) return
 
   const isFirstPurchase = !user.firstPurchaseDone
-  const bonusStickers   = isFirstPurchase ? 2 : 0
+  const bonusStickers   = isFirstPurchase ? 10 : 0  // 2 display stickers × 5
   const totalStickers   = user.stickers + pack.amount + bonusStickers
   const updates         = { stickers: totalStickers }
   if (isFirstPurchase) updates.firstPurchaseDone = 1
@@ -193,7 +193,7 @@ router.post('/stickers/buy', authenticate, (req, res) => {
     const user = Users.findById(req.userId)
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
     const isFirstPurchase = !user.firstPurchaseDone
-    const bonusStickers   = isFirstPurchase ? 2 : 0
+    const bonusStickers   = isFirstPurchase ? 10 : 0  // 2 display stickers × 5
     const updates = { stickers: user.stickers + pack.amount + bonusStickers }
     if (isFirstPurchase) updates.firstPurchaseDone = 1
     const updated = Users.update(req.userId, updates)

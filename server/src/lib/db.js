@@ -37,6 +37,8 @@ async function initDb() {
   try { db.run("ALTER TABLE users ADD COLUMN emailVerified INTEGER DEFAULT 0") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN emailVerifyToken TEXT") } catch {}
   try { db.run("ALTER TABLE users ADD COLUMN phone TEXT") } catch {}
+  try { db.run("ALTER TABLE users ADD COLUMN roundsPlayed INTEGER DEFAULT 0") } catch {}
+  try { db.run("ALTER TABLE users ADD COLUMN rounds INTEGER DEFAULT 0") } catch {}
 
   db.run(`CREATE TABLE IF NOT EXISTS pending_orders (
     id          TEXT PRIMARY KEY,

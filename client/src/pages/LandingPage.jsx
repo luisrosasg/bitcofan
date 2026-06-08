@@ -436,14 +436,14 @@ export default function LandingPage() {
   ]
 
   const packs = [
-    { kind: 'starter',  name: 'STARTER',  stickers: 1,  rounds: 1,  price: '$1.000',  discount: null,   popular: false, badge: null, firstBonus: true,
-      perks: ['⚡ 1 misión', '🏆 Compite por el premio diario', '🛡 Perfecto para empezar'] },
-    { kind: 'fanatico', name: 'FANÁTICO',  stickers: 5,  rounds: 5,  price: '$4.000',  discount: '20%',  popular: false, badge: null,
-      perks: ['⚡ 5 misiones', '🏆 Más chances de hacer la mejor racha', '🛡 Ideal para jugadores frecuentes'] },
-    { kind: 'popular',  name: 'PRO',       stickers: 15, rounds: 15, price: '$10.000', discount: '30%',  popular: true,  badge: 'MÁS POPULAR',
-      perks: ['⚡ 15 misiones', '🏆 Maximiza tus chances de ganar', '🛡 La mejor opción'] },
-    { kind: 'ballena',  name: 'BALLENA',   stickers: 50, rounds: 50, price: '$30.000', discount: '40%',  popular: false, badge: null,
-      perks: ['⚡ 50 misiones', '🏆 Máxima ventaja para el premio diario', '🛡 Para los más competitivos'] },
+    { kind: 'starter',  name: 'STARTER',  stickers: 1,  rounds: 5,  price: '$1.000',  discount: null,   popular: false, badge: null, firstBonus: true,
+      perks: ['⚡ 5 intentos', '🏆 Compite por el premio diario', '🛡 Perfecto para empezar'] },
+    { kind: 'fanatico', name: 'FANÁTICO',  stickers: 5,  rounds: 25,  price: '$4.000',  discount: '20%',  popular: false, badge: null,
+      perks: ['⚡ 25 intentos', '🏆 Más chances de hacer la mejor racha', '🛡 Ideal para jugadores frecuentes'] },
+    { kind: 'popular',  name: 'PRO',       stickers: 15, rounds: 75, price: '$10.000', discount: '30%',  popular: true,  badge: 'MÁS POPULAR',
+      perks: ['⚡ 75 intentos', '🏆 Maximiza tus chances de ganar', '🛡 La mejor opción'] },
+    { kind: 'ballena',  name: 'BALLENA',   stickers: 50, rounds: 250, price: '$30.000', discount: '40%',  popular: false, badge: null,
+      perks: ['⚡ 250 intentos', '🏆 Máxima ventaja para el premio diario', '🛡 Para los más competitivos'] },
   ]
 
   return (
@@ -564,8 +564,8 @@ export default function LandingPage() {
                 {p.firstBonus && (
                   <div className="lp-first-bonus-box">
                     <div className="lp-first-bonus-label">🎁 Solo en tu primera compra:</div>
-                    <div className="lp-first-bonus-val">+2 stickers gratis</div>
-                    <div className="lp-first-bonus-total">Total: <strong>3 stickers</strong> · Después: 1</div>
+                    <div className="lp-first-bonus-val">+2 stickers gratis (+10 intentos)</div>
+                    <div className="lp-first-bonus-total">Total: <strong>15 intentos</strong> · Después: 5</div>
                   </div>
                 )}
                 <ul className="lp-pack-perks">
