@@ -10,14 +10,15 @@ export default function PaymentResultPage() {
   const [stickers, setStickers] = useState(0)
 
   useEffect(() => {
-    const dpStatus   = params.get('status')       // AUTHORIZED, CANCELLED, TIMEOUT
+    const dpStatus   = params.get('status')
     const buyOrder   = params.get('buy_order')
+    const paymentId  = params.get('payment_id')
 
     if (!buyOrder) { setStatus('error'); return }
 
     const check = (attempt = 0) => {
       // Use fetch directly — no auth required for this endpoint
-      fetch(`/api/game/stickers/payment-result?buy_order=${buyOrder}&status=${dpStatus || ''}`)
+      fetch(`/api/game/stickers/payment-result?buy_order=${buyOrder || ''}&status=${dpStatus || ''}&payment_id=${paymentId || ''}`)
         .then(r => r.json())
         .then(({ status: s, user, token }) => {
           // If server returns a fresh token, update localStorage

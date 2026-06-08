@@ -137,10 +137,15 @@ router.post('/payments/webhook', async (req, res) => {
 
 // GET /api/game/stickers/payment-result — called after Webpay redirect (no auth needed)
 router.get('/stickers/payment-result', async (req, res) => {
-  const { status, buy_order } = req.query
+  const { status, buy_order, payment_id } = req.query
+  console.log(`[payment-result] status=${status} buy_order=${buy_order} payment_id=${payment_id}`)
   try {
-    const order = dbGet('SELECT * FROM pending_orders WHERE id = ?', [buy_order])
-    if (!order) return res.status(404).json({ error: 'Orden no encontrada' })
+    let order = dbGet('SELECT * FROM pending_orders WHERE id = ?', [buy_order])
+    // Fallback: look up by DalePago payment_id
+    if (!order && payment_id) {
+      order = dbGet('SELECT * FROM pending_orders WHERE dalepago_id = ?', [payment_id])
+    }
+    if (!order) return res.status(404).json({ error: 'Orden no encontrada', buy_order, payment_id })
 
     // Deliver if AUTHORIZED and not already done
     if (status === 'AUTHORIZED' && order.status !== 'completed') {
